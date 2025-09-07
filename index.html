@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride-Together ऐप</title>
+    <!-- Tailwind CSS के लिए CDN लिंक -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- इंटर फ़ॉन्ट के लिए CDN लिंक -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- मुख्य कंटेनर -->
+    <div id="main-app" class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md mx-auto">
+        <!-- ऐप हेडर -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">राइड-टुगेदर</h1>
+            <div id="auth-controls" class="space-x-2">
+                <button id="logout-btn" class="hidden px-4 py-2 bg-red-500 text-white rounded-full font-medium shadow-md hover:bg-red-600 transition-colors">लॉगआउट</button>
+            </div>
+        </header>
+
+        <!-- लोडिंग स्क्रीन -->
+        <div id="loading-screen" class="flex flex-col items-center justify-center text-center">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-gray-600">लोड हो रहा है...</p>
+        </div>
+
+        <!-- लॉगिन/साइनअप स्क्रीन -->
+        <div id="auth-screen" class="hidden flex flex-col space-y-4">
+            <h2 class="text-2xl font-semibold text-center mb-4">लॉगिन / साइनअप</h2>
+            <input type="email" id="email-input" placeholder="ईमेल पता" class="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="password-input" placeholder="पासवर्ड" class="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button id="login-btn" class="px-4 py-3 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700 transition-colors">लॉगिन</button>
+            <button id="signup-btn" class="px-4 py-3 bg-green-600 text-white rounded-lg font-bold shadow-lg hover:bg-green-700 transition-colors">साइनअप</button>
+            <p class="text-sm text-center text-gray-500 mt-2">यह ऐप फ़ायरबेस बैक-एंड के साथ काम करता है</p>
+            <p id="user-info-text" class="text-center text-gray-500 text-sm mt-4"></p>
+        </div>
+
+        <!-- यात्री डैशबोर्ड -->
+        <div id="passenger-dashboard" class="hidden">
+            <h2 class="text-2xl font-semibold mb-4">यात्री डैशबोर्ड</h2>
+            <div class="space-y-4">
+                <input type="text" id="pickup-location" placeholder="पिकअप लोकेशन" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="drop-location" placeholder="ड्रॉप लोकेशन" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="find-ride-btn" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-bold shadow-lg hover:bg-indigo-700 transition-colors">राइड खोजें</button>
+            </div>
+            <div id="passenger-status" class="mt-6 p-4 bg-yellow-100 rounded-lg text-yellow-800 hidden">
+                <p>आपकी राइड की स्थिति: <span id="ride-status-text"></span></p>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">मेरी राइड्स:</h3>
+                <ul id="rides-list" class="space-y-2"></ul>
+            </div>
+        </div>
+
+        <!-- ड्राइवर डैशबोर्ड -->
+        <div id="driver-dashboard" class="hidden">
+            <h2 class="text-2xl font-semibold mb-4">ड्राइवर डैशबोर्ड</h2>
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="font-medium text-gray-700">ऑनलाइन स्थिति:</span>
+                <button id="online-toggle-btn" class="px-6 py-2 rounded-full font-bold shadow-md transition-colors">ऑफलाइन</button>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">नई राइड रिक्वेस्ट:</h3>
+                <div id="ride-requests" class="space-y-4">
+                    <p class="text-gray-500 text-sm">अभी कोई नई रिक्वेस्ट नहीं है।</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">मेरी कमाई:</h3>
+                <p id="driver-earnings" class="text-2xl font-bold text-green-600">₹ 0.00</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK के लिए स्क्रिप्ट -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase के लिए ग्लोबल वेरिएबल्स, जो कैनवास एनवायरनमेंट द्वारा प्रदान किए गए हैं।
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // UI एलिमेंट्स
+        const loadingScreen = document.getElementById('loading-screen');
+        const authScreen = document.getElementById('auth-screen');
+        const passengerDashboard = document.getElementById('passenger-dashboard');
+        const driverDashboard = document.getElementById('driver-dashboard');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const findRideBtn = document.getElementById('find-ride-btn');
+        const onlineToggleBtn = document.getElementById('online-toggle-btn');
+        const ridesList = document.getElementById('rides-list');
+        const rideRequestsContainer = document.getElementById('ride-requests');
+        const userStatusInfo = document.getElementById('user-info-text');
+
+        let app, auth, db, userId;
+
+        /**
+         * Firebase को इनिशियलाइज़ करता है और यूज़र को प्रमाणित करता है।
+         */
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // auth state में बदलाव को सुनें
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            userStatusInfo.textContent = `User ID: ${userId}`;
+                            await setupUser(user);
+                        } else {
+                            // अगर यूज़र लॉग आउट है, तो लॉगिन स्क्रीन दिखाएं
+                            showScreen('auth');
+                            console.log("No user is signed in.");
+                        }
+                    });
+
+                    // यदि प्रारंभिक टोकन उपलब्ध है, तो कस्टम टोकन के साथ साइन इन करें।
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        // यदि कोई टोकन नहीं है, तो गुमनाम रूप से साइन इन करें।
+                        await signInAnonymously(auth);
+                    }
+
+                } else {
+                    console.error("Firebase config is not available. Check the environment setup.");
+                    loadingScreen.innerHTML = '<p class="text-red-500">Firebase कॉन्फ़िगरेशन उपलब्ध नहीं है।</p>';
+                }
+            } catch (error) {
+                console.error("Firebase इनिशियलाइज़ेशन या प्रमाणीकरण में त्रुटि:", error);
+                loadingScreen.innerHTML = `<p class="text-red-500">एक त्रुटि हुई: ${error.message}</p>`;
+            }
+        }
+
+        /**
+         * यूज़र की भूमिका (role) के आधार पर UI दिखाता है।
+         * @param {firebase.User} user - वर्तमान फ़ायरबेस यूज़र ऑब्जेक्ट
+         */
+        async function setupUser(user) {
+            const userRef = doc(db, `artifacts/${appId}/users/${userId}/data/user_profile`);
+            const userSnap = await getDoc(userRef);
+            let userRole = 'passenger'; // default role
+
+            if (userSnap.exists()) {
+                userRole = userSnap.data().role;
+            } else {
+                // नए यूज़र के लिए डिफ़ॉल्ट प्रोफ़ाइल बनाएं
+                await setDoc(userRef, {
+                    email: user.email || 'anonymous',
+                    role: 'passenger',
+                    createdAt: new Date()
+                });
+            }
+
+            // भूमिका के आधार पर डैशबोर्ड दिखाएं
+            if (userRole === 'passenger') {
+                showScreen('passenger');
+                setupPassengerDashboard();
+            } else if (userRole === 'driver') {
+                showScreen('driver');
+                setupDriverDashboard();
+            }
+            logoutBtn.classList.remove('hidden');
+        }
+
+        /**
+         * यूज़र को लॉगआउट करता है।
+         */
+        async function handleLogout() {
+            await signOut(auth);
+            showScreen('auth');
+            logoutBtn.classList.add('hidden');
+        }
+
+        /**
+         * एक निर्दिष्ट स्क्रीन दिखाता है और बाकी को छुपाता है।
+         * @param {string} screenId - स्क्रीन का आईडी ('auth', 'passenger', 'driver')
+         */
+        function showScreen(screenId) {
+            loadingScreen.classList.add('hidden');
+            authScreen.classList.add('hidden');
+            passengerDashboard.classList.add('hidden');
+            driverDashboard.classList.add('hidden');
+
+            if (screenId === 'auth') {
+                authScreen.classList.remove('hidden');
+            } else if (screenId === 'passenger') {
+                passengerDashboard.classList.remove('hidden');
+            } else if (screenId === 'driver') {
+                driverDashboard.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * यात्री डैशबोर्ड के लिए इवेंट हैंडलर सेट करता है।
+         */
+        function setupPassengerDashboard() {
+            findRideBtn.addEventListener('click', async () => {
+                const pickup = document.getElementById('pickup-location').value;
+                const drop = document.getElementById('drop-location').value;
+
+                if (!pickup || !drop) {
+                    alert('कृपया पिकअप और ड्रॉप लोकेशन दर्ज करें।');
+                    return;
+                }
+
+                try {
+                    const ridesRef = collection(db, `artifacts/${appId}/public/data/rides`);
+                    const rideData = {
+                        passengerId: userId,
+                        pickup,
+                        drop,
+                        status: 'pending',
+                        timestamp: new Date()
+                    };
+                    await addDoc(ridesRef, rideData);
+                    alert('आपकी राइड रिक्वेस्ट भेज दी गई है!');
+                } catch (e) {
+                    console.error("राइड रिक्वेस्ट जोड़ने में त्रुटि:", e);
+                    alert("राइड रिक्वेस्ट भेजने में त्रुटि हुई।");
+                }
+            });
+
+            // अपनी राइड्स की स्थिति को रीयल-टाइम में ट्रैक करें
+            const q = query(collection(db, `artifacts/${appId}/public/data/rides`), where("passengerId", "==", userId));
+            onSnapshot(q, (snapshot) => {
+                ridesList.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const ride = doc.data();
+                    const li = document.createElement('li');
+                    li.className = "p-3 bg-gray-100 rounded-lg shadow-sm";
+                    li.textContent = `पिकअप: ${ride.pickup}, ड्रॉप: ${ride.drop}, स्थिति: ${ride.status}`;
+                    ridesList.appendChild(li);
+                });
+            });
+        }
+
+        /**
+         * ड्राइवर डैशबोर्ड के लिए इवेंट हैंडलर सेट करता है।
+         */
+        function setupDriverDashboard() {
+            let isOnline = false;
+            const onlineToggleBtn = document.getElementById('online-toggle-btn');
+            
+            onlineToggleBtn.addEventListener('click', async () => {
+                isOnline = !isOnline;
+                onlineToggleBtn.textContent = isOnline ? 'ऑनलाइन' : 'ऑफलाइन';
+                onlineToggleBtn.classList.toggle('bg-green-600', isOnline);
+                onlineToggleBtn.classList.toggle('bg-red-500', !isOnline);
+                onlineToggleBtn.classList.toggle('text-white', true);
+            });
+
+            // नई राइड रिक्वेस्ट को रीयल-टाइम में सुनें
+            const ridesRef = collection(db, `artifacts/${appId}/public/data/rides`);
+            onSnapshot(ridesRef, (snapshot) => {
+                rideRequestsContainer.innerHTML = '';
+                let hasRequests = false;
+                snapshot.forEach((doc) => {
+                    const ride = doc.data();
+                    if (isOnline && ride.status === 'pending') {
+                        hasRequests = true;
+                        const requestDiv = document.createElement('div');
+                        requestDiv.className = "p-4 bg-blue-100 rounded-lg shadow-md";
+                        requestDiv.innerHTML = `
+                            <p class="font-bold">नई रिक्वेस्ट!</p>
+                            <p class="text-sm text-gray-700">पिकअप: ${ride.pickup}</p>
+                            <p class="text-sm text-gray-700">ड्रॉप: ${ride.drop}</p>
+                            <div class="mt-2 space-x-2">
+                                <button class="accept-btn px-4 py-2 bg-green-500 text-white rounded-full text-sm hover:bg-green-600" data-ride-id="${doc.id}">स्वीकार करें</button>
+                                <button class="reject-btn px-4 py-2 bg-red-500 text-white rounded-full text-sm hover:bg-red-600" data-ride-id="${doc.id}">अस्वीकार करें</button>
+                            </div>
+                        `;
+                        rideRequestsContainer.appendChild(requestDiv);
+                    }
+                });
+
+                // अगर कोई रिक्वेस्ट नहीं है तो मैसेज दिखाएं
+                if (!hasRequests) {
+                    rideRequestsContainer.innerHTML = '<p class="text-gray-500 text-sm">अभी कोई नई रिक्वेस्ट नहीं है।</p>';
+                }
+
+                // स्वीकार/अस्वीकार बटन के लिए इवेंट लिसनर जोड़ें
+                document.querySelectorAll('.accept-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const rideId = e.target.dataset.rideId;
+                        const rideRef = doc(db, `artifacts/${appId}/public/data/rides/${rideId}`);
+                        await updateDoc(rideRef, {
+                            status: 'accepted',
+                            driverId: userId,
+                            acceptedAt: new Date()
+                        });
+                        alert('राइड स्वीकार कर ली गई!');
+                    });
+                });
+            });
+        }
+
+        // इवेंट लिसनर
+        loginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                console.log("Login successful!");
+            } catch (error) {
+                console.error("Login failed:", error.message);
+                alert("लॉगिन में त्रुटि हुई: " + error.message);
+            }
+        });
+
+        signupBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                console.log("Signup successful!");
+            } catch (error) {
+                console.error("Signup failed:", error.message);
+                alert("साइनअप में त्रुटि हुई: " + error.message);
+            }
+        });
+
+        logoutBtn.addEventListener('click', handleLogout);
+
+        // ऐप को शुरू करें
+        initializeFirebase();
+    </script>
+</body>
+</html>
